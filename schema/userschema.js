@@ -35,8 +35,13 @@ const userSchema = new mongoose.Schema({
         type:Boolean,
         required:true,
         default:false
-    }
-    ,
+    },
+    socketID:{
+        type:String,
+        default:null,
+        null:true
+    },
+    isActive:boolean
     // contacts: [
     //     {
     //       type: mongoose.Schema.Types.ObjectId,

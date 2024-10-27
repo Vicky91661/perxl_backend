@@ -42,8 +42,8 @@ const updateUserSchema = z.object({
 });
 
 const VerifyOTP = async(req,res)=>{
-    const otp =req.body.otp
-    const phoneNumber =req.body.phoneNumber
+    const otp =Number(req.body.otp);
+    const phoneNumber =Number(req.body.phoneNumber);
     console.log("the otp received is ",otp," for the number => ",phoneNumber)
 
     try {
@@ -59,9 +59,9 @@ const VerifyOTP = async(req,res)=>{
                 // make the user verified and save it
                 userExist.verified = true;
                 await userExist.save(); 
-                
+                var token = jwt.sign({ phoneNumber }, JWT_SECRET);
                 res.status(200).json({
-                    message: "successfully login",
+                    message: "successfully",
                     firstName:userExist.firstName,
                     lastName:userExist.lastName,
                     verified:userExist.verified,
@@ -87,38 +87,35 @@ const VerifyOTP = async(req,res)=>{
             });
         }
         return res.status(411).json({
-            message: ["Error while sign in"]
+            message: ["Error while otp verification"]
         });
     }
 
 
-    var token = jwt.sign({ phoneNumber }, JWT_SECRET);
+    
 }
 
 const Signin = async (req,res)=>{
     console.log("requested body is",req.body)
    
-    const phoneNumber =req.body.phoneNumber
-    
+    const phoneNumber =Number(req.body.phoneNumber)
+    console.log("phone number is",phoneNumber)
     try {
         userSignin.parse({phoneNumber})
         const userExist = await User.findOne({phoneNumber});
         const otp = generateOTP();
+        console.log("the otp is ,",otp)
         if(userExist){
-            if(result){
-                    
-                    res.status(200).json({
-                        message: "successfully login",
-                        firstName:userExist.firstName,
-                        lastName:userExist.lastName,
-                        token
-                    })  
-            }else{
-                res.status(411).json({
-                    message: ["Password is incorrect"]
-                })
-            }
-            
+            const hashedOTP = await bcrypt.hash(otp, saltRounds);
+            userExist.otp = hashedOTP;
+            // send the otp to the user
+
+            await userExist.save();
+            res.status(200).json({
+                message: "successfully send the OTP",
+                firstName:userExist.firstName,
+                lastName:userExist.lastName,
+            })   
 
         }else{
             res.status(411).json({
@@ -141,7 +138,7 @@ const Signin = async (req,res)=>{
 
 const Signup = async (req,res)=>{
 
-    const phoneNumber =req.body.phoneNumber
+    const phoneNumber =Number(req.body.phoneNumber);
     const firstName =req.body.firstName
     const lastName =req.body.lastName
 
