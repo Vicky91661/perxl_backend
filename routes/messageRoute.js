@@ -1,10 +1,11 @@
-import express from "express";
+const express= require("express") ;
 const router = express.Router();
 
-import { sendMessage, getMessages } from "../controller/messageControllers.js";
-import { Auth } from "../middelwares/userMiddleware.js";
+const  { sendMessage, getMessages }= require("../controller/messageControllers.js");
+const  Auth = require("../middelwares/userMiddleware.js");
 
 router.post("/", Auth, sendMessage);
 router.get("/:chatId", Auth, getMessages);
 
-export default router;
+
+module.exports = router;

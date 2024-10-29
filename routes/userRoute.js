@@ -1,7 +1,8 @@
 const express = require("express");
 const router = express.Router();
 
-const {Signin ,Signup,VerifyOTP, updateData}  = require("../controller/userController")
+const {Signin ,Signup,VerifyOTP, updateData,fetchAllUsers}  = require("../controller/userController");
+const Auth = require("../middelwares/userMiddleware");
 
 // /api/v1/user => user route
 
@@ -16,6 +17,8 @@ router.post("/signup",Signup)
 router.post("/verifyotp",VerifyOTP)
 
 // POST:/api/v1/user/update
-router.post("/update",updateData)
+router.post("/update",Auth,updateData)
+
+router.get("/allusers",Auth,fetchAllUsers)
 
 module.exports = router;

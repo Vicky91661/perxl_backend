@@ -1,9 +1,13 @@
 const express = require("express");
 const app = express();
-var cors = require('cors')
-import * as Server from 'socket.io';
+var cors = require('cors');
+const Server = require('socket.io');
 
-const connectDb = require("../backend/db/db")
+const userRouter = require("./routes/userRoute");
+const GroupRouter = require("./routes/groupRoute");
+const messageRouter = require('./routes/messageRoute');
+
+const connectDb = require("../backend/db/db");
 const {PORT} = require("./config/config");
 
 const corsConfig = {
@@ -11,52 +15,46 @@ const corsConfig = {
     credentials: true,
 };
 
-connectDb ()
+connectDb();
 
-const mainRouter =require("./routes/index")
-
-app.use(cors())
+app.use(cors());
 // Middleware for parsing JSON data
 app.use(express.json());
 
-
-app.use("/api/v1",mainRouter)
-
-app.listen(PORT,()=>{
-    console.log("Backend is connected to the port number",PORT)
-})
+app.use("/api/v1/user", userRouter);
+app.use('/api/v1/group', GroupRouter);
+app.use('/api/v1/message', messageRouter);
 
 const server = app.listen(PORT, () => {
-    console.log(`Server Listening at PORT - ${PORT}`);
+    console.log("Backend is connected to the port number", PORT);
 });
 
 const io = new Server.Server(server, {
     pingTimeout: 60000,
-    cors: {
-        origin: 'http://localhost:3000',
-    },
+    // cors: {
+    //     origin: 'http://localhost:4000',
+    // },
 });
 
 io.on('connection', (socket) => {
+    console.log("the socket is ",socket)
     socket.on('setup', (userData) => {
-        console.lof("user data is ",userData)
+        console.log("user data is ", userData);
         socket.join(userData.id);
         socket.emit('connected');
     });
-    socket.on('join room', (room) => {
-        socket.join(room);
+    socket.on('Group Created', (groupId) => {
+        socket.join(groupId);
     });
-    socket.on('typing', (room) => socket.in(room).emit('typing'));
-    socket.on('stop typing', (room) => socket.in(room).emit('stop typing'));
-  
-    socket.on('new message', (newMessageRecieve) => {
-      var chat = newMessageRecieve.chatId;
-      if (!chat.users) console.log('chats.users is not defined');
-      chat.users.forEach((user) => {
-        if (user._id == newMessageRecieve.sender._id) return;
-        socket.in(user._id).emit('message recieved', newMessageRecieve);
-      });
-    });
+    socket.on('typing', (groupId) => socket.in(groupId).emit('typing'));
+    socket.on('stop typing', (groupId) => socket.in(groupId).emit('stop typing'));
 
-    
-  });
+    socket.on('new message', (newMessageRecieve) => {
+        var group = newMessageRecieve.groupId;
+        if (!group.users) console.log('group.users is not defined');
+        group.users.forEach((user) => {
+            if (user._id == newMessageRecieve.sender._id) return;
+            socket.in(user._id).emit('message recieved', newMessageRecieve);
+        });
+    });
+});

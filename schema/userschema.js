@@ -41,7 +41,9 @@ const userSchema = new mongoose.Schema({
         default:null,
         null:true
     },
-    isActive:boolean
+    isActive:{
+        type:Boolean
+    }
     // contacts: [
     //     {
     //       type: mongoose.Schema.Types.ObjectId,
@@ -51,7 +53,4 @@ const userSchema = new mongoose.Schema({
 })
 
 const User = mongoose.model('User', userSchema);
-
-module.exports = {
-	User
-};
+module.exports = User;

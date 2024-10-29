@@ -1,43 +1,39 @@
-import Chat from '../schema/chatSchema.js';
-import {User} from '../schema/userschema.js'
+const Group =  require('../schema/groupSchema.js');
+const User = require('../schema/userschema.js');
+const jwt = require('jsonwebtoken');
+const  JWT_SECRET  = process.env.JWT_SECRET;
 
-export const accessChats = async (req, res) => {
-  const { userId } = req.body;
-  if (!userId) res.send({ message: "Provide User's Id" });
-  let chatExists = await Chat.find({
-    isGroup: false,
-    $and: [
-      { users: { $elemMatch: { $eq: userId } } },
-      { users: { $elemMatch: { $eq: req.rootUserId } } },
-    ],
-  })
-    .populate('users', '-password')
-    .populate('latestMessage');
-  chatExists = await user.populate(chatExists, {
-    path: 'latestMessage.sender',
-    select: 'name email profilePic',
-  });
-  if (chatExists.length > 0) {
-    res.status(200).send(chatExists[0]);
-  } else {
-    let data = {
-      chatName: 'sender',
-      users: [userId, req.rootUserId],
-      isGroup: false,
-    };
-    try {
-      const newChat = await Chat.create(data);
-      const chat = await Chat.find({ _id: newChat._id }).populate(
-        'users',
-        '-password'
-      );
-      res.status(200).json(chat);
-    } catch (error) {
-      res.status(500).send(error);
-    }
+const accessGroups = async (req, res) => {
+  try {
+    // Extract userId from the req
+    const {userId} = req.userId;
+    
+    // Find all groups where the user is a member
+    const groups = await Group.find({
+      isGroup: true,
+      users: userId,
+    })
+      .populate('users', '-password') // Populate users in the group, excluding password
+      .populate('latestMessage');
+
+    // All the groups related the a particalr person
+    console.log("The groups data is",groups);
+  
+    // Populate the sender details of the latest message
+    await User.populate(groups, {
+      path: 'latestMessage.sender',
+      select: 'name email profilePic',
+    });
+
+    res.status(200).json(groups);
+  } catch (error) {
+    console.error('Error fetching groups:', error);
+    res.status(500).send({ message: 'Error fetching groups' });
   }
 };
-export const fetchAllChats = async (req, res) => {
+
+
+const fetchAllChats = async (req, res) => {
   try {
     const chats = await Chat.find({
       users: { $elemMatch: { $eq: req.rootUserId } },
@@ -56,28 +52,29 @@ export const fetchAllChats = async (req, res) => {
     console.log(error);
   }
 };
-export const creatGroup = async (req, res) => {
-  const { chatName, users } = req.body;
+const creatGroup = async (req, res) => {
+  const { GroupName, users,userId } = req.body;
 
-  if (!chatName || !users) {
+  if (!GroupName || !users) {
     res.status(400).json({ message: 'Please fill the fields' });
   }
 
+  consoe.log("the users are ",users);
+  if (users.length < 2)
+    res.status(400).json({
+      message:'Group should contain more than 2 users'
+    });
 
-  const parsedUsers = JSON.parse(users);
-  if (parsedUsers.length < 2)
-    res.send(400).send('Group should contain more than 2 users');
 
-
-  parsedUsers.push(req.rootUser);
+    users.push(req.userId);
 
 
   try {
-    const chat = await Chat.create({
-      chatName: chatName,
-      users: parsedUsers,
+    const group = await Group.create({
+      GroupNameName: chatName,
+      users: users,
       isGroup: true,
-      groupAdmin: req.rootUserId,
+      groupAdmin: userId,
     });
 
 
@@ -90,7 +87,7 @@ export const creatGroup = async (req, res) => {
     res.sendStatus(500);
   }
 };
-export const renameGroup = async (req, res) => {
+const renameGroup = async (req, res) => {
   const { chatId, chatName } = req.body;
   if (!chatId || !chatName)
     res.status(400).send('Provide Chat id and Chat name');
@@ -107,7 +104,7 @@ export const renameGroup = async (req, res) => {
     res.status(500).send(error);
   }
 };
-export const addToGroup = async (req, res) => {
+const addToGroup = async (req, res) => {
   const { userId, chatId } = req.body;
   const existing = await Chat.findOne({ _id: chatId });
   if (!existing.users.includes(userId)) {
@@ -122,7 +119,7 @@ export const addToGroup = async (req, res) => {
     res.status(409).send('user already exists');
   }
 };
-export const removeFromGroup = async (req, res) => {
+const removeFromGroup = async (req, res) => {
   const { userId, chatId } = req.body;
   const existing = await Chat.findOne({ _id: chatId });
   if (existing.users.includes(userId)) {
@@ -137,4 +134,5 @@ export const removeFromGroup = async (req, res) => {
     res.status(409).send('user doesnt exists');
   }
 };
-export const removeContact = async (req, res) => {};
+
+module.exports ={accessGroups,fetchAllChats,creatGroup,renameGroup,addToGroup,removeFromGroup}

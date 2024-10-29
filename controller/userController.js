@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken');
 const {z} = require("zod")
 const bcrypt = require('bcrypt');
 
-const {User} = require("../schema/userschema");
+const User = require("../schema/userschema");
 const  JWT_SECRET  = process.env.JWT_SECRET;
 const {saltRounds} = require("../config/config");
 const { generateOTP } = require('../utils/otp');
@@ -55,16 +55,18 @@ const VerifyOTP = async(req,res)=>{
         console.log("User exist ");
         if(userExist){
             const result = await bcrypt.compare(otp.toString(),userExist.otp)
+            console.log("the reult after verification is ",result);
             if(result){
                 // make the user verified and save it
                 userExist.verified = true;
                 await userExist.save(); 
                 var token = jwt.sign({ phoneNumber }, JWT_SECRET);
+                console.log("the tooekn is ",token)
                 res.status(200).json({
                     message: "successfully",
                     firstName:userExist.firstName,
                     lastName:userExist.lastName,
-                    verified:userExist.verified,
+                    phoneNumber:req.body.phoneNumber,
                     token
                 })  
             }else{
@@ -195,14 +197,14 @@ const Signup = async (req,res)=>{
 }
 
 const updateData = async (req,res)=>{
-    const { phoneNumber, firstName, lastName, profilePic } = req.body;
+    const {userId, firstName, lastName, profilePic } = req.body;
 
     try {
         // Validate the input with Zod
         updateUserSchema.parse({ phoneNumber, firstName, lastName, profilePic });
 
         // Find the user by phone number
-        const user = await User.findOne({ phoneNumber });
+        const user = await User.findOne({ _id:userId });
         if (!user) {
             return res.status(404).json({ message: "User not found" });
         }
@@ -231,4 +233,38 @@ const updateData = async (req,res)=>{
         return res.status(500).json({ message: "Error updating profile" });
     }
 }
-module.exports = {Signin,Signup,VerifyOTP,updateData}
+
+
+const fetchAllUsers = async (req, res) => {
+    try {
+        // Fetch all users and select only the fields you need
+        const users = await User.find({}, {
+            _id: 1,            // MongoDB's _id field, will be mapped to userId
+            firstName: 1,
+            lastName: 1,
+            phoneNumber: 1,
+            profilePic: 1
+        });
+
+        // Format the response to use "userId" instead of "_id"
+        const formattedUsers = users.map(user => ({
+            userId: user._id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            phoneNumber: user.phoneNumber,
+            profilePic: user.profilePic
+        }));
+
+        res.status(200).json({
+            message: "Users fetched successfully",
+            users: formattedUsers
+        });
+    } catch (error) {
+        console.error("Error fetching all users:", error.message);
+        return res.status(500).json({
+            message: ["Error while fetching all users"]
+        });
+    }
+}
+
+module.exports = {Signin,Signup,VerifyOTP,updateData,fetchAllUsers}

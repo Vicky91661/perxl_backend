@@ -1,32 +1,28 @@
-import jwt from 'jsonwebtoken';
+const jwt =  require('jsonwebtoken');
 const {User} = require('../schema/userschema')
 
-
-export const Auth = async (req, res, next) => {
+const Auth = async (req, res, next) => {
   try {
-    let token = req.headers.authorization.split(' ')[0]; //when using browser this line
-    // let token = req.headers.authorization.split(' ')[1]; //when using postman this line
-    if (token.length < 500) {
-      const verifiedUser = jwt.verify(token, process.env.SECRET);
-      const rootUser = await user
+    console.log("the authorization header data is ",req.headers.authorization);
+
+    // let token = req.headers.authorization.split(' ')[0]; //when using browser this line
+    let token = req.headers.authorization.split(' ')[1]; //when using postman this line
+    
+    const verifiedUser = jwt.verify(token, process.env.SECRET);
+    const rootUser = await User
         .findOne({ _id: verifiedUser.id })
         .select('-password');
-      req.token = token;
-      req.rootUser = rootUser;
-      req.rootUserId = rootUser._id;
-    } else {
-      let data = jwt.decode(token);
-      req.rootUserEmail = data.email;
-      const googleUser = await user
-        .findOne({ email: req.rootUserEmail })
-        .select('-password');
-      req.rootUser = googleUser;
-      req.token = token;
-      req.rootUserId = googleUser._id;
+    if(rootUser){
+        req.userId = rootUser._id;
+        next();
+    }else{
+        res.status(411).json({ error: 'Invalid User' });
     }
-    next();
+   
   } catch (error) {
     // console.log(error);
-    res.json({ error: 'Invalid Token' });
+    res.status(411).json({ error: 'Invalid User' });
   }
 };
+
+module.exports = Auth;

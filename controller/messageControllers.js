@@ -1,12 +1,13 @@
-import Message from '../models/messageModel.js';
-import {User} from '../schema/userschema.js';
-import Chat from '../models/chatModel.js';
+const  Message = require('../schema/messageSchema.js');
+const User = require('../schema/userschema.js');
+const Chat = require('../schema/groupSchema.js');
+const  JWT_SECRET  = process.env.JWT_SECRET;
 
-
-export const sendMessage = async (req, res) => {
+const sendMessage = async (req, res) => {
   const { chatId, message } = req.body;
   try {
     let msg = await Message.create({ sender: req.rootUserId, message, chatId });
+
     msg = await (
       await msg.populate('sender', 'name profilePic email')
     ).populate({
@@ -19,16 +20,18 @@ export const sendMessage = async (req, res) => {
         model: 'User',
       },
     });
+
     await Chat.findByIdAndUpdate(chatId, {
       latestMessage: msg,
     });
+
     res.status(200).send(msg);
   } catch (error) {
     console.log(error);
     res.status(500).json({ error: error });
   }
 };
-export const getMessages = async (req, res) => {
+const getMessages = async (req, res) => {
   const { chatId } = req.params;
   try {
     let messages = await Message.find({ chatId })
@@ -48,3 +51,6 @@ export const getMessages = async (req, res) => {
     console.log(error);
   }
 };
+
+
+module.exports = {sendMessage,getMessages}

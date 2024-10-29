@@ -1,11 +1,11 @@
-import mongoose from 'mongoose';
-const chatSchema = mongoose.Schema(
+const mongoose = require('mongoose');
+const groupSchema = mongoose.Schema(
   {
     photo: {
       type: String,
       default: 'https://cdn-icons-png.flaticon.com/512/9790/9790561.png',
     },
-    chatName: {
+    GroupName: {
       type: String,
     },
     isGroup: {
@@ -31,5 +31,6 @@ const chatSchema = mongoose.Schema(
     timestamps: true,
   }
 );
-const chatModel = mongoose.model('Chat', chatSchema);
-export default chatModel;
+const Group = mongoose.model('Group', groupSchema);
+
+module.exports = Group;
