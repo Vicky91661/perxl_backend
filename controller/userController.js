@@ -6,6 +6,7 @@ const User = require("../schema/userschema");
 const  JWT_SECRET  = process.env.JWT_SECRET;
 const {saltRounds} = require("../config/config");
 const { generateOTP } = require('../utils/otp');
+const { response } = require('express');
 
 const userSignin =z.object({
     phoneNumber:z.number().int() // Make sure it's an integer
@@ -23,19 +24,13 @@ const userSignup =z.object({
 
 const verifyOTP = z.object({
     
-    otp :z.number().int() // Make sure it's an integer
-    .gte(100000,{ message: "Invalid OTP" }) // Greater than or equal to the smallest 5 digit int
-    .lte(999999,{ message: "Invalid OTP" }),
-
+    otp :z.number().int(), // Make sure it's an integer
     phoneNumber:z.number().int() // Make sure it's an integer
     .gte(1000000000,{ message: "Phone number is less then 10 digit" }) // Greater than or equal to the smallest 10 digit int
     .lte(9999999999,{ message: "Phone number is more then 10 digit" }),
 })
 
 const updateUserSchema = z.object({
-    phoneNumber: z.number().int()
-        .gte(1000000000, { message: "Phone number is less than 10 digits" })
-        .lte(9999999999, { message: "Phone number is more than 10 digits" }),
     firstName: z.string().min(1, { message: "First name should not be empty" }).max(20, { message: "First name must be 20 characters or less" }).optional(),
     lastName: z.string().min(1, { message: "Last name should not be empty" }).max(20, { message: "Last name must be 20 characters or less" }).optional(),
     profilePic: z.string().url().optional(),
@@ -64,9 +59,6 @@ const VerifyOTP = async(req,res)=>{
                 console.log("the tooekn is ",token)
                 res.status(200).json({
                     message: "successfully",
-                    firstName:userExist.firstName,
-                    lastName:userExist.lastName,
-                    phoneNumber:req.body.phoneNumber,
                     token
                 })  
             }else{
@@ -197,11 +189,13 @@ const Signup = async (req,res)=>{
 }
 
 const updateData = async (req,res)=>{
-    const {userId, firstName, lastName, profilePic } = req.body;
 
+    console.log("Received req.body in updateData:", req.body);  // Debug log
+    const {userId, firstName, lastName, profilePic } = req.body;
+    
     try {
         // Validate the input with Zod
-        updateUserSchema.parse({ phoneNumber, firstName, lastName, profilePic });
+        updateUserSchema.parse({ firstName, lastName, profilePic });
 
         // Find the user by phone number
         const user = await User.findOne({ _id:userId });
@@ -234,10 +228,11 @@ const updateData = async (req,res)=>{
     }
 }
 
-
 const fetchAllUsers = async (req, res) => {
     try {
         // Fetch all users and select only the fields you need
+
+        console.log("Inside THE FECTH ALL USERS");
         const users = await User.find({}, {
             _id: 1,            // MongoDB's _id field, will be mapped to userId
             firstName: 1,
@@ -266,5 +261,35 @@ const fetchAllUsers = async (req, res) => {
         });
     }
 }
+const getUserDetails= async (req,res)=>{
+    
+    try {
+        let token = req.headers.authorization.split(' ')[1]; //when using postman this line
+        console.log("Inside the fetch user deatils ");
+        const verifiedUser = jwt.verify(token, process.env.JWT_SECRET);
+        const rootUser = await User
+            .findOne({ phoneNumber: verifiedUser.phoneNumber })
+            .select('-otp');
+   
+        if(rootUser){
+            res.status(200).json({
+                firstName:rootUser.firstName,
+                lastName : rootUser.lastName,
+                profilePic : rootUser.profilePic,
+                phoneNumber:rootUser.phoneNumber
+            })
+        }else{
+            res.status(400).json({
+                message: ["User not Exist"]
+            })
+        }
+        
+    } catch (error) {
+        res.status(400).json({
+            message: ["Error while fetching user details"]
+        })
+    }
+    
+}
 
-module.exports = {Signin,Signup,VerifyOTP,updateData,fetchAllUsers}
+module.exports = {Signin,Signup,VerifyOTP,updateData,fetchAllUsers,getUserDetails}

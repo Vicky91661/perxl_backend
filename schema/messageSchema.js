@@ -3,15 +3,18 @@ const messageSchema = mongoose.Schema(
   {
     sender: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: 'User',
+      required: true
     },
     message: {
       type: String,
       trim: true,
+      required: true
     },
-    chatId: {
+    taskId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Group",
+      ref: "Task",
+      required: true
     },
   },
   {

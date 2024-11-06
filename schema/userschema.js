@@ -1,6 +1,5 @@
 const mongoose = require("mongoose");
 const { boolean } = require("zod");
-require('dotenv').config();
 
 const userSchema = new mongoose.Schema({
     phoneNumber: {
@@ -24,6 +23,7 @@ const userSchema = new mongoose.Schema({
     },
     profilePic: {
         type: String,
+        required: true,
         default:
           'https://icon-library.com/images/anonymous-avatar-icon/anonymous-avatar-icon-25.jpg',
     },
@@ -44,12 +44,6 @@ const userSchema = new mongoose.Schema({
     isActive:{
         type:Boolean
     }
-    // contacts: [
-    //     {
-    //       type: mongoose.Schema.Types.ObjectId,
-    //       ref: 'User',
-    //     },
-    // ]
 })
 
 const User = mongoose.model('User', userSchema);

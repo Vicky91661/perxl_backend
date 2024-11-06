@@ -1,19 +1,20 @@
 const jwt =  require('jsonwebtoken');
-const {User} = require('../schema/userschema')
+const User = require('../schema/userschema')
 
 const Auth = async (req, res, next) => {
   try {
-    console.log("the authorization header data is ",req.headers.authorization);
-
-    // let token = req.headers.authorization.split(' ')[0]; //when using browser this line
+    // console.log("Inside the user middle ware");
     let token = req.headers.authorization.split(' ')[1]; //when using postman this line
-    
-    const verifiedUser = jwt.verify(token, process.env.SECRET);
+    const verifiedUser = jwt.verify(token, process.env.JWT_SECRET);
+
     const rootUser = await User
-        .findOne({ _id: verifiedUser.id })
-        .select('-password');
+        .findOne({ phoneNumber: verifiedUser.phoneNumber })
+        .select('-otp');
+
     if(rootUser){
-        req.userId = rootUser._id;
+
+        req.body = Object.assign({}, req.body, { userId: rootUser._id });
+
         next();
     }else{
         res.status(411).json({ error: 'Invalid User' });

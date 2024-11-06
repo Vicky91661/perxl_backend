@@ -7,6 +7,7 @@ const groupSchema = mongoose.Schema(
     },
     GroupName: {
       type: String,
+      required: true
     },
     isGroup: {
       type: Boolean,
@@ -22,10 +23,12 @@ const groupSchema = mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Message',
     },
-    groupAdmin: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-    },
+    groupAdmin:[
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      }
+    ],
   },
   {
     timestamps: true,

@@ -2,30 +2,32 @@ const Group =  require('../schema/groupSchema.js');
 const User = require('../schema/userschema.js');
 const jwt = require('jsonwebtoken');
 const  JWT_SECRET  = process.env.JWT_SECRET;
+const mongoose = require('mongoose');
+
 
 const accessGroups = async (req, res) => {
   try {
     // Extract userId from the req
-    const {userId} = req.userId;
-    
+    const {userId} = req.body;
+
     // Find all groups where the user is a member
     const groups = await Group.find({
       isGroup: true,
       users: userId,
     })
-      .populate('users', '-password') // Populate users in the group, excluding password
+      .populate('users', '-otp') // Populate users in the group, excluding otp
       .populate('latestMessage');
 
-    // All the groups related the a particalr person
-    console.log("The groups data is",groups);
-  
-    // Populate the sender details of the latest message
-    await User.populate(groups, {
-      path: 'latestMessage.sender',
-      select: 'name email profilePic',
-    });
+    // // All the groups related the a particalr person
+    // console.log("The groups data is",groups);
 
-    res.status(200).json(groups);
+    res.status(200).json({
+      message:"ok",
+      groups
+    })
+
+
+    // res.status(200).json(groups);
   } catch (error) {
     console.error('Error fetching groups:', error);
     res.status(500).send({ message: 'Error fetching groups' });
@@ -52,41 +54,46 @@ const fetchAllChats = async (req, res) => {
     console.log(error);
   }
 };
+
 const creatGroup = async (req, res) => {
-  const { GroupName, users,userId } = req.body;
+  
+  const { GroupName, users, userId } = req.body;
 
   if (!GroupName || !users) {
-    res.status(400).json({ message: 'Please fill the fields' });
+    return res.status(400).json({ message: 'Please fill all the fields' });
   }
 
-  consoe.log("the users are ",users);
-  if (users.length < 2)
-    res.status(400).json({
-      message:'Group should contain more than 2 users'
+  console.log("The users are:", users);
+
+  if (users.length < 2) {
+    return res.status(400).json({
+      message: 'A group should contain more than 2 users',
     });
-
-
-    users.push(req.userId);
-
+  }
+  const userIds = users.map((user) => user.userId);
+  userIds.push(userId);
 
   try {
     const group = await Group.create({
-      GroupNameName: chatName,
-      users: users,
+      GroupName: GroupName,
+      users: userIds,
       isGroup: true,
       groupAdmin: userId,
     });
+    console.log("This group created is => ",group);
 
 
-    const createdChat = await Chat.findOne({ _id: chat._id })
-      .populate('users', '-password')
-      .populate('groupAdmin', '-password');
-    // res.status(200).json(createdChat);
-    res.send(createdChat);
+    const createdGroup = await Group.findOne({ _id: group._id })
+      .populate('users', '-otp')
+      .populate('groupAdmin', '-otp');
+
+    res.status(200).json(createdGroup);
   } catch (error) {
+    console.error(error);
     res.sendStatus(500);
   }
 };
+
 const renameGroup = async (req, res) => {
   const { chatId, chatName } = req.body;
   if (!chatId || !chatName)
@@ -106,7 +113,7 @@ const renameGroup = async (req, res) => {
 };
 const addToGroup = async (req, res) => {
   const { userId, chatId } = req.body;
-  const existing = await Chat.findOne({ _id: chatId });
+  const existing = await Group.findOne({ _id: chatId });
   if (!existing.users.includes(userId)) {
     const chat = await Chat.findByIdAndUpdate(chatId, {
       $push: { users: userId },

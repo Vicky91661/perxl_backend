@@ -4,8 +4,8 @@ const router = express.Router();
 const  { sendMessage, getMessages }= require("../controller/messageControllers.js");
 const  Auth = require("../middelwares/userMiddleware.js");
 
-router.post("/", Auth, sendMessage);
-router.get("/:chatId", Auth, getMessages);
+router.post("/sendmessage", Auth, sendMessage);
+router.get("/fetchMessages", Auth, getMessages);
 
 
 module.exports = router;

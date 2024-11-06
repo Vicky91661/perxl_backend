@@ -6,6 +6,7 @@ const Server = require('socket.io');
 const userRouter = require("./routes/userRoute");
 const GroupRouter = require("./routes/groupRoute");
 const messageRouter = require('./routes/messageRoute');
+const taskRouter = require('./routes/taskRoute')
 
 const connectDb = require("../backend/db/db");
 const {PORT} = require("./config/config");
@@ -24,6 +25,7 @@ app.use(express.json());
 app.use("/api/v1/user", userRouter);
 app.use('/api/v1/group', GroupRouter);
 app.use('/api/v1/message', messageRouter);
+app.use('/api/v1/task', taskRouter);
 
 const server = app.listen(PORT, () => {
     console.log("Backend is connected to the port number", PORT);
@@ -43,11 +45,15 @@ io.on('connection', (socket) => {
         socket.join(userData.id);
         socket.emit('connected');
     });
-    socket.on('Group Created', (groupId) => {
-        socket.join(groupId);
+    socket.on('Group Created', (newGroup) => {
+        if (!newGroup.users) console.log('users is not defined');
+        newGroup.users.forEach((user) => {
+            if (user._id == newGroup.admin) return;
+            socket.in(user._id).emit('new group created', newGroup.groupName);
+        });
     });
-    socket.on('typing', (groupId) => socket.in(groupId).emit('typing'));
-    socket.on('stop typing', (groupId) => socket.in(groupId).emit('stop typing'));
+    socket.on('typing', (groupId,userName) => socket.in(groupId).emit(userName, ' is typing'));
+    socket.on('stop typing', (groupId,userName) => socket.in(groupId).emit(userName,' stop typing'));
 
     socket.on('new message', (newMessageRecieve) => {
         var group = newMessageRecieve.groupId;
