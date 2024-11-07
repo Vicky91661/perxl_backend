@@ -1,12 +1,11 @@
 const jwt = require('jsonwebtoken');
 const {z} = require("zod")
 const bcrypt = require('bcrypt');
-
+require('dotenv').config();
 const User = require("../schema/userschema");
 const  JWT_SECRET  = process.env.JWT_SECRET;
 const {saltRounds} = require("../config/config");
 const { generateOTP } = require('../utils/otp');
-const { response } = require('express');
 
 const userSignin =z.object({
     phoneNumber:z.number().int() // Make sure it's an integer
@@ -40,7 +39,7 @@ const VerifyOTP = async(req,res)=>{
     const otp =Number(req.body.otp);
     const phoneNumber =Number(req.body.phoneNumber);
     console.log("the otp received is ",otp," for the number => ",phoneNumber)
-
+    console.log("the JWT Token is =>",JWT_SECRET);
     try {
         // Validate the input using Zod
         verifyOTP.parse({phoneNumber,otp})
@@ -57,10 +56,12 @@ const VerifyOTP = async(req,res)=>{
                 await userExist.save(); 
                 var token = jwt.sign({ phoneNumber }, JWT_SECRET);
                 console.log("the tooekn is ",token)
+                console.log("The user is ",userExist);
                 res.status(200).json({
                     message: "successfully",
-                    token
-                })  
+                    token,
+                    userId :userExist._id
+                })
             }else{
                 res.status(411).json({
                     message: ["Invalid OTP"]
